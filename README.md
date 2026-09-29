@@ -3,6 +3,10 @@
 Google Maps walking and cycling directions on a Pebble Time 2, with a small map that shows
 where you are and where the next turn is.
 
+**Looking for maintainers.** Maps Navigation needs new maintainers. If you would like to help
+maintain it or take it over, [open an
+issue](https://github.com/peblum/maps-for-pebble/issues/new).
+
 Start directions in Google Maps on Android. The watchapp opens by itself and shows the next
 manoeuvre (Google's own arrow icon, the distance and the street), a heading-up map of the
 streets around you with your position, the estimated position of the next turn, the street you
