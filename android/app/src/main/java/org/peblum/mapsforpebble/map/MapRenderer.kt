@@ -21,6 +21,7 @@ class MapRenderer {
         val tiles: List<TileData>,
         val preview: Preview?,
         val hasFix: Boolean,
+        val noFixAdvice: List<String> = emptyList(),
         val markerFraction: Float = MARKER_FRACTION,
     )
 
@@ -51,7 +52,7 @@ class MapRenderer {
         val canvas = Canvas(bitmap)
         canvas.drawColor(FrameEncoder.COLOR_WHITE)
         if (!spec.hasFix) {
-            drawCentered(canvas, "Waiting for GPS", spec)
+            drawCentered(canvas, listOf("Waiting for GPS") + spec.noFixAdvice, spec)
             return bitmap
         }
         val pixelsPerUnit = WebMercator.pixelsPerUnit(spec.zoom).toFloat()
@@ -66,7 +67,7 @@ class MapRenderer {
         matrix.postTranslate(markerX, markerY)
 
         if (spec.tiles.isEmpty()) {
-            drawCentered(canvas, "No map data", spec)
+            drawCentered(canvas, listOf("No map data"), spec)
         }
         canvas.save()
         canvas.concat(matrix)
@@ -324,13 +325,21 @@ class MapRenderer {
 
     private fun drawCentered(
         canvas: Canvas,
-        value: String,
+        lines: List<String>,
         spec: Spec,
     ) {
-        text.textSize = 14f
         text.color = FrameEncoder.COLOR_BLACK
-        val width = text.measureText(value)
-        canvas.drawText(value, (spec.width - width) / 2f, spec.height / 2f + 5f, text)
+        val headingSize = 14f
+        val adviceSize = 12f
+        val adviceGap = 6f
+        val blockHeight = headingSize + (lines.size - 1) * (adviceSize + 2f) + if (lines.size > 1) adviceGap else 0f
+        var baseline = (spec.height - blockHeight) / 2f + headingSize
+        lines.forEachIndexed { index, line ->
+            text.textSize = if (index == 0) headingSize else adviceSize
+            if (index == 1) baseline += adviceGap
+            canvas.drawText(line, (spec.width - text.measureText(line)) / 2f, baseline, text)
+            baseline += adviceSize + 2f
+        }
     }
 
     private fun addPolyline(
