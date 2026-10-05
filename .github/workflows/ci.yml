@@ -35,7 +35,7 @@ jobs:
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
       - name: Install the Android platform
         run: yes | sdkmanager "${ANDROID_PLATFORM}" >/dev/null
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
       - name: Install pre-commit
         run: pipx install pre-commit==4.6.2
       - name: Run hooks
@@ -80,7 +80,7 @@ jobs:
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
       - name: Install the Android platform
         run: yes | sdkmanager "${ANDROID_PLATFORM}" >/dev/null
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
       - name: Build, test and verify coverage
         run: ./gradlew assembleDebug assembleRelease testDebugUnitTest koverVerifyDebug koverHtmlReportDebug --no-daemon
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
