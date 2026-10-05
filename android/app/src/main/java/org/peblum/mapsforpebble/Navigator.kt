@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +37,7 @@ import org.peblum.mapsforpebble.map.TileData
 import org.peblum.mapsforpebble.map.TileStore
 import org.peblum.mapsforpebble.map.WebMercator
 import org.peblum.mapsforpebble.nav.GoogleMapsNotification
+import org.peblum.mapsforpebble.nav.LocationProblem
 import org.peblum.mapsforpebble.nav.Maneuver
 import org.peblum.mapsforpebble.nav.MorseCue
 import org.peblum.mapsforpebble.nav.NavParser
@@ -450,6 +452,13 @@ object Navigator {
             ""
         }
 
+    private fun locationProblem(): LocationProblem? =
+        LocationProblem.of(
+            locationEnabled = LocationManagerCompat.isLocationEnabled(app.getSystemService(Context.LOCATION_SERVICE) as LocationManager),
+            precise = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION),
+            allTheTime = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+        )
+
     private fun hasPermission(permission: String): Boolean =
         ContextCompat.checkSelfPermission(app, permission) == PackageManager.PERMISSION_GRANTED
 
@@ -503,7 +512,8 @@ object Navigator {
 
         val tileList = if (hasFix) withContext(Dispatchers.IO) { loadTiles(lat, lon, zoom, width, height) } else emptyList()
         val preview = if (hasFix) buildPreview(lat, lon, heading, state, tileList) else null
-        val bitmap = renderer.render(MapRenderer.Spec(width, height, lat, lon, heading, zoom, tileList, preview, hasFix))
+        val advice = if (hasFix) emptyList() else locationProblem()?.advice.orEmpty()
+        val bitmap = renderer.render(MapRenderer.Spec(width, height, lat, lon, heading, zoom, tileList, preview, hasFix, advice))
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
         val data = FrameEncoder.encode(pixels, width, height)
