@@ -275,6 +275,13 @@ byte aligned, exactly the layout of `GBitmapFormat2BitPalette`. Palette: 0 white
 - **Anti-aliasing is the enemy of a 4 colour display.** With every paint set to
   `isAntiAlias = false` every pixel lands exactly on a palette entry and the map stays crisp.
 
+## Website
+
+The landing page lives in `site/` and is published to GitHub Pages at
+[maps.peblum.org](https://maps.peblum.org/) on every push to `main` that touches it. The images
+it shows are copied from `docs/images/` and `branding/` when it deploys, so there is one copy of
+each in the repository.
+
 ## Icon
 
 `branding/icon.svg` is the store icon: a route turning onto the street ahead, with your position
