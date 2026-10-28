@@ -42,7 +42,7 @@ Every version is pinned and asserted where it can be. Change a pin in one place 
 
 Locally, `pre-commit install` once per clone, then every commit runs the formatters, the linters, `ktlintCheck`, the Android unit tests and `koverVerifyDebug` (the last two only when `android/` changed). The watchapp build needs the SDK, so it runs in CI only.
 
-CI (`.github/workflows/ci.yml`): `check` and `secrets` first, then `android` (build, tests, coverage, APKs and the coverage report as artifacts) and `watchapp` (pbw as an artifact), then `measure` writes the artifact sizes to the job summary without gating. `codeql.yml` analyses Kotlin, Python and the workflows. `release.yml` runs on `v*` tags: it checks the tag against `watchapp/package.json`, builds, attaches the assets to a GitHub release and publishes the pbw to the appstore listing when `REBBLE_APP_ID` and `REBBLE_ACCESS_TOKEN` are set.
+CI (`.github/workflows/ci.yml`): `check` and `secrets` first, then `android` (build, tests, coverage, APKs and the coverage report as artifacts) and `watchapp` (pbw as an artifact), then `measure` writes the artifact sizes to the job summary without gating. `codeql.yml` analyses Kotlin, Python and the workflows. `release.yml` runs on `v*` tags: it checks the tag against `watchapp/package.json`, builds, attaches the assets to a GitHub release and publishes the pbw to the appstore listing when `REBBLE_APP_ID` and `REBBLE_ACCESS_TOKEN` are set. `pages.yml` deploys `site/` to GitHub Pages and, in its `dns` job, makes sure Cloudflare holds `maps.peblum.org CNAME peblum.github.io`, unproxied with automatic TTL, when `CLOUDFLARE_DNS_TOKEN` is set.
 
 # Testing
 
