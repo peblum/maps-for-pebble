@@ -6,10 +6,7 @@ on:
     paths: ["site/**", "docs/images/**", "branding/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
 concurrency:
   group: pages
@@ -20,6 +17,10 @@ jobs:
     name: Deploy the landing page
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -33,3 +34,69 @@ jobs:
           path: site
       - id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+
+  dns:
+    name: Point the custom domain at Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      CLOUDFLARE_DNS_TOKEN: ${{ secrets.CLOUDFLARE_DNS_TOKEN }}
+      ZONE_NAME: peblum.org
+      RECORD_NAME: maps.peblum.org
+      RECORD_CONTENT: peblum.github.io
+    steps:
+      - name: Make sure the CNAME record exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "$CLOUDFLARE_DNS_TOKEN" ]; then
+            echo "::notice title=DNS record left unchecked::CLOUDFLARE_DNS_TOKEN is not set, so $RECORD_NAME was not checked."
+            exit 0
+          fi
+
+          cloudflare() {
+            local method=$1 path=$2
+            shift 2
+            curl --silent --show-error --fail-with-body --max-time 30 --request "$method" \
+              --header @<(printf 'Authorization: Bearer %s\nContent-Type: application/json\n' "$CLOUDFLARE_DNS_TOKEN") \
+              "https://api.cloudflare.com/client/v4$path" "$@"
+          }
+
+          zone_id=$(cloudflare GET "/zones?name=$ZONE_NAME" | jq -r '.result[0].id // empty')
+          if [ -z "$zone_id" ]; then
+            echo "::error title=Zone not found::The token cannot see the zone $ZONE_NAME."
+            exit 1
+          fi
+
+          records=$(cloudflare GET "/zones/$zone_id/dns_records?name=$RECORD_NAME")
+          count=$(jq '.result | length' <<<"$records")
+          wanted=$(jq -n --arg name "$RECORD_NAME" --arg content "$RECORD_CONTENT" \
+            '{type: "CNAME", name: $name, content: $content, proxied: false, ttl: 1}')
+
+          if [ "$count" -eq 0 ]; then
+            cloudflare POST "/zones/$zone_id/dns_records" --data "$wanted" | jq -e '.success' >/dev/null
+            echo "::notice title=DNS record created::$RECORD_NAME CNAME $RECORD_CONTENT"
+            exit 0
+          fi
+
+          if [ "$count" -gt 1 ]; then
+            echo "::error title=Several DNS records::$RECORD_NAME has $count records, so none was changed."
+            exit 1
+          fi
+
+          current=$(jq '.result[0]' <<<"$records")
+          if jq -e --argjson wanted "$wanted" \
+            '.type == $wanted.type
+              and (.content | ascii_downcase | rtrimstr(".")) == $wanted.content
+              and .proxied == $wanted.proxied
+              and .ttl == $wanted.ttl' <<<"$current" >/dev/null; then
+            echo "::notice title=DNS record in place::$RECORD_NAME CNAME $RECORD_CONTENT"
+            exit 0
+          fi
+
+          record_id=$(jq -r '.id' <<<"$current")
+          was=$(jq -r '"\(.type) \(.content) proxied \(.proxied) ttl \(.ttl)"' <<<"$current")
+          cloudflare PATCH "/zones/$zone_id/dns_records/$record_id" --data "$wanted" | jq -e '.success' >/dev/null
+          echo "::notice title=DNS record updated::$RECORD_NAME was $was, now CNAME $RECORD_CONTENT"
